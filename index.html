@@ -198,6 +198,8 @@ async function loadDB(){
 }
 function ensureKeys(){
   if(!DB.users)DB.users={iowacitycsd:{password:'wearebroke',role:'DA',name:'District Admin',initials:'DA'}};
+  // Fix any users that are missing a role field (safety net for old data)
+  Object.entries(DB.users).forEach(([u,d])=>{if(!d.role)d.role='A';});
   if(!DB.schools)DB.schools={};
   if(!DB.teachers)DB.teachers={};
   if(!DB.students)DB.students={};
@@ -245,10 +247,17 @@ async function doLogin(){
     await loadDB();
     ld.style.display='none';btn.disabled=false;btn.textContent='Sign In to Portal';
     let found=null;
-    if(DB.users[u]&&DB.users[u].password===p)found={username:u,...DB.users[u]};
+    // Check DB.users first (admins) — role is stored in the record itself
+    if(DB.users[u]&&DB.users[u].password===p){
+      const roleVal=DB.users[u].role||'DA';
+      found={username:u,...DB.users[u],role:roleVal};
+    }
+    // Teachers, students, parents each have their own pool — role is set here explicitly
     else if(DB.teachers[u]&&DB.teachers[u].password===p)found={username:u,role:'T',...DB.teachers[u]};
     else if(DB.students[u]&&DB.students[u].password===p)found={username:u,role:'S',...DB.students[u]};
     else if(DB.parents[u]&&DB.parents[u].password===p)found={username:u,role:'P',...DB.parents[u]};
+    // Safety check — if something went wrong and role ended up as P for a non-parent, fix it
+    if(found&&found.role==='P'&&DB.users[u]){found.role=DB.users[u].role||'DA';}
     if(found){CU=found;bootApp();}
     else{err.textContent='Incorrect username or password.';err.style.display='block';}
   }catch(e){
@@ -637,11 +646,17 @@ function showEditStudent(u){
   const fi=GRADES.indexOf(sc.gradeFrom||'K'),ti=GRADES.indexOf(sc.gradeTo||'12');
   const gl=GRADES.slice(fi>=0?fi:0,(ti>=0?ti:12)+1);
   const go=gl.map(g=>`<option value="${g}"${s.grade===g?' selected':''}>${g==='K'?'Kindergarten':'Grade '+g}</option>`).join('');
+  // Find all parents in this school and mark which ones already have this student linked
+  const parentOpts=Object.entries(DB.parents).filter(([pu,p])=>(p.students||[]).some(su=>DB.students[su]?.schoolId===sid)||(sid&&true)).map(([pu,p])=>{
+    const linked=(p.students||[]).includes(u);
+    return`<option value="${pu}"${linked?' selected':''}>${p.name} (${pu})</option>`;
+  }).join('');
   document.getElementById('mtitle').textContent='Edit Student: '+s.name;
   document.getElementById('mbody').innerHTML=`
     <div class="fr"><div class="fd"><label>Full Name</label><input id="m-n" type="text" value="${s.name}"></div></div>
     <div class="fr"><div class="fd"><label>Username</label><input id="m-u" type="text" value="${u}" readonly></div><div class="fd"><label>Password</label><input id="m-pw" type="text" value="${s.password}"></div></div>
-    <div class="fr"><div class="fd"><label>Student ID</label><input id="m-sid" type="text" value="${s.studentId||''}"></div><div class="fd"><label>Grade Level</label><select id="m-g">${go}</select></div></div>`;
+    <div class="fr"><div class="fd"><label>Student ID</label><input id="m-sid" type="text" value="${s.studentId||''}"></div><div class="fd"><label>Grade Level</label><select id="m-g">${go}</select></div></div>
+    <div class="fr"><div class="fd"><label>Linked Parents (Ctrl/Cmd for multiple)</label><select id="m-par" multiple style="height:80px;width:100%;padding:6px;border:1.5px solid var(--border);border-radius:7px;font-size:13px">${parentOpts||'<option disabled>No parents created yet</option>'}</select><div style="font-size:11px;color:var(--muted);margin-top:4px">Selecting a parent here will also update their linked students list.</div></div></div>`;
   document.getElementById('mact').innerHTML=`<button class="btn bo" onclick="closeModal()">Cancel</button><button class="btn bp" onclick="saveEditStudent('${u}')">Save Changes</button>`;
   document.getElementById('modal').style.display='flex';
 }
@@ -653,6 +668,14 @@ function saveEditStudent(u){
   if(!name||!pass)return alert('Fill required fields.');
   DB.students[u].name=name;DB.students[u].password=pass;DB.students[u].studentId=sid;DB.students[u].grade=grade;
   DB.students[u].initials=name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  // Update parent links — add this student to selected parents, remove from deselected
+  const selectedParents=[...document.getElementById('m-par').selectedOptions].map(o=>o.value);
+  Object.entries(DB.parents).forEach(([pu,p])=>{
+    const shouldLink=selectedParents.includes(pu);
+    const isLinked=(p.students||[]).includes(u);
+    if(shouldLink&&!isLinked){if(!p.students)p.students=[];p.students.push(u);}
+    else if(!shouldLink&&isLinked){p.students=p.students.filter(s=>s!==u);}
+  });
   qSave();closeModal();renderPage();
 }
 
