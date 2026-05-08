@@ -7,7 +7,7 @@ const app = express()
 app.use(bodyParser.json())
 
 /* =========================
-   🧠 FAKE DATABASE (replace later w/ Firebase / JSONBin / Keyv)
+🧠 FAKE DATABASE (replace later w/ Firebase / JSONBin / Keyv)
 ========================= */
 
 const db = {
@@ -17,13 +17,13 @@ const db = {
 }
 
 /* =========================
-   🔐 CONFIG
+🔐 CONFIG
 ========================= */
 
 const JWT_SECRET = "super_secret_change_this_lol"
 
 /* =========================
-   🧑‍💻 ROLES
+🧑‍💻 ROLES
 ========================= */
 
 const ROLES = {
@@ -35,7 +35,7 @@ const ROLES = {
 }
 
 /* =========================
-   🧠 AUDIT LOG SYSTEM
+🧠 AUDIT LOG SYSTEM
 ========================= */
 
 function audit(action, data) {
@@ -47,7 +47,7 @@ function audit(action, data) {
 }
 
 /* =========================
-   🔒 AUTH MIDDLEWARE
+🔒 AUTH MIDDLEWARE
 ========================= */
 
 function auth(req, res, next) {
@@ -64,7 +64,7 @@ function auth(req, res, next) {
 }
 
 /* =========================
-   🧠 ROLE GUARD
+🧠 ROLE GUARD
 ========================= */
 
 function requireRole(roles) {
@@ -77,7 +77,7 @@ function requireRole(roles) {
 }
 
 /* =========================
-   👤 REGISTER
+👤 REGISTER
 ========================= */
 
 app.post("/register", async (req, res) => {
@@ -100,7 +100,7 @@ app.post("/register", async (req, res) => {
 })
 
 /* =========================
-   🔑 LOGIN (JWT)
+🔑 LOGIN (JWT)
 ========================= */
 
 app.post("/login", async (req, res) => {
@@ -122,7 +122,7 @@ app.post("/login", async (req, res) => {
 })
 
 /* =========================
-   📢 ANNOUNCEMENTS (ADMIN ONLY)
+📢 ANNOUNCEMENTS (ADMIN ONLY)
 ========================= */
 
 app.post(
@@ -148,7 +148,7 @@ app.post(
 )
 
 /* =========================
-   📜 GET ANNOUNCEMENTS
+📜 GET ANNOUNCEMENTS
 ========================= */
 
 app.get("/announcements", auth, (req, res) => {
@@ -156,7 +156,7 @@ app.get("/announcements", auth, (req, res) => {
 })
 
 /* =========================
-   📊 AUDIT LOGS (ADMIN ONLY)
+📊 AUDIT LOGS (ADMIN ONLY)
 ========================= */
 
 app.get(
@@ -169,7 +169,7 @@ app.get(
 )
 
 /* =========================
-   👥 USERS LIST (ADMIN ONLY)
+👥 USERS LIST (ADMIN ONLY)
 ========================= */
 
 app.get(
@@ -182,72 +182,21 @@ app.get(
 )
 
 /* =========================
-   🧨 BASIC FRONTEND DASHBOARD
+🧨 BASIC FRONTEND DASHBOARD
 ========================= */
 
 app.get("/", (req, res) => {
   res.send(`
-<!DOCTYPE html>
-<html>
-<head>
-<title>School Portal</title>
-<style>
-body { font-family: sans-serif; background:#111; color:white; padding:20px }
-.card { background:#222; padding:10px; margin:10px; border-radius:10px }
-button { padding:10px; margin:5px }
-</style>
-</head>
-<body>
-
-<h1>📚 School Portal</h1>
-
-<div class="card">
-  <h3>Login Test (open console)</h3>
-  <button onclick="login()">Login Demo</button>
-</div>
-
-<div class="card">
-  <h3>Announcements</h3>
-  <button onclick="load()">Load</button>
-  <pre id="out"></pre>
-</div>
-
-<script>
-let token = ""
-
-async function login(){
-  const res = await fetch("/login", {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({
-      username:"admin",
-      password:"1234"
-    })
-  })
-  const data = await res.json()
-  token = data.token
-  alert("logged in 👍")
-}
-
-async function load(){
-  const res = await fetch("/announcements", {
-    headers:{ Authorization:"Bearer " + token }
-  })
-  const data = await res.json()
-  document.getElementById("out").innerText = JSON.stringify(data,null,2)
-}
-</script>
-
-</body>
-</html>
+    <h1>📚 School Portal</h1>
+    <button onclick="alert('use /login')">Login Demo</button>
+    <button onclick="alert('use /announcements')">Announcements</button>
   `)
 })
 
 /* =========================
-   🚀 START SERVER
+🚀 START SERVER
 ========================= */
 
 app.listen(3000, () => {
   console.log("school system running on http://localhost:3000")
 })
-
